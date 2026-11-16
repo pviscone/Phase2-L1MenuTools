@@ -614,6 +614,162 @@ L1_DoubleDispMu:
     threshold_cut: pt >= 6
     obj: L1gmtDispMuon:default
 
+# Electron counterparts of muon seeds
+# Each seed below is the electron version of the muon seed named in its comment:
+# muon legs replaced by L1tkElectron:NoIso:inclusive, cross masks and thresholds
+# copied verbatim. Thresholds are the muon ones and still have to be retuned.
+# Muon seeds whose selection already has an electron counterpart in this menu
+# are not repeated: L1_SingleTkMu -> L1_SingleTkEle, L1_DoubleTkMu -> L1_DoubleTkEle,
+# L1_TkMu7_TkEle20 / L1_TkMu20_TkEle10 -> L1_DoubleTkEle,
+# L1_TkMu_DoubleTkEle / L1_DoubleTkMu_TkEle -> L1_TripleTkEle,
+# L1_TkMu6_HTSum240 / L1_TkMu12_HTSum150 -> L1_TkEleIso_HTSum,
+# L1_DoubleTkMu_HTSum -> L1_DoubleTkEle_HTSum,
+# L1_TkMu_IsoTau -> L1_TkEleIso_IsoTau,
+# L1_DoubleJet_TkMu -> L1_DoubleJet_TkEleIso.
+# The displaced muon seeds have no electron counterpart: there is no displaced
+# electron object (only L1gmtDispMuon exists).
+L1_SingleTkEle_Barrel: # electron counterpart of L1_SingleTkMu_Barrel
+  cross_masks:
+    - (abs(leg1.eta) < 0.83)
+  leg1:
+    threshold_cut: offline_pt >= 13.0
+    obj: L1tkElectron:NoIso:inclusive
+L1_DoubleTkEle0er1p4_SQ_OS_dR_Max1p4: # electron counterpart of L1_DoubleTkMu0er1p4_SQ_OS_dR_Max1p4
+  cross_masks:
+    - (abs(leg1.eta) < 1.4)
+    - (abs(leg2.eta) < 1.4)
+    - ((leg1.deltaR(leg2) < 1.4))
+    - ((leg1.charge*leg2.charge < 0.0))
+    - ((abs(leg2.z0-leg1.z0) < 1)) # TODO check deltaZ cut
+    - ((leg1.deltaR(leg2) > 0))
+  leg1:
+    threshold_cut: offline_pt >= 1
+    obj: L1tkElectron:NoIso:inclusive
+  leg2:
+    threshold_cut: offline_pt >= 1
+    obj: L1tkElectron:NoIso:inclusive
+L1_DoubleTkEle4er2p0_SQ_OS_dR_Max1p6: # electron counterpart of L1_DoubleTkMu4er2p0_SQ_OS_dR_Max1p6
+  cross_masks:
+    - (abs(leg1.eta) < 2.0)
+    - (abs(leg2.eta) < 2.0)
+    - ((leg1.deltaR(leg2) < 1.6) & (leg1.deltaR(leg2) > 0))
+    - ((leg1.charge*leg2.charge < 0.0) & (leg1.deltaR(leg2) > 0))
+    - ((abs(leg2.z0-leg1.z0) < 1) & (leg1.deltaR(leg2) > 0)) # TODO check deltaZ cut (and whether dR > 0 checks are necessary)
+  leg1:
+    threshold_cut: offline_pt >= 6
+    obj: L1tkElectron:NoIso:inclusive
+  leg2:
+    threshold_cut: offline_pt >= 6
+    obj: L1tkElectron:NoIso:inclusive
+L1_TripleTkEle: # electron counterpart of L1_TripleTkMu
+  cross_masks:
+    - abs(leg2.z0-leg1.z0) < 1
+    - abs(leg3.z0-leg1.z0) < 1
+  leg1:
+    threshold_cut: offline_pt >= 5
+    obj: L1tkElectron:NoIso:inclusive
+  leg2:
+    threshold_cut: offline_pt >= 5
+    obj: L1tkElectron:NoIso:inclusive
+  leg3:
+    threshold_cut: offline_pt >= 5
+    obj: L1tkElectron:NoIso:inclusive
+L1_TripleTkEle_4_2p5_0_OS_Mass_Max12: # electron counterpart of L1_TripleTkMu_4_2p5_0_OS_Mass_Max12
+  cross_masks:
+    - abs(leg2.z0-leg1.z0) < 1
+    - abs(leg3.z0-leg1.z0) < 1
+    - abs(leg1.charge+leg2.charge+leg3.charge) == 1.0 # TODO check this actually works as expected
+    - (leg1+leg2+leg3).mass < 12.0
+  leg1:
+    threshold_cut: offline_pt >= 6.0
+    obj: L1tkElectron:NoIso:inclusive
+  leg2:
+    threshold_cut: offline_pt >= 4.0
+    obj: L1tkElectron:NoIso:inclusive
+  leg3:
+    threshold_cut: offline_pt >= 1.0
+    obj: L1tkElectron:NoIso:inclusive
+L1_QuadTkEle_Mass_Max14_Max20: # electron counterpart of L1_DoubleTkMu_DoubleTkEle (all four legs)
+  cross_masks:
+    - abs(leg2.z0-leg1.z0) < 1
+    - abs(leg3.z0-leg1.z0) < 1
+    - abs(leg4.z0-leg1.z0) < 1
+    - abs(leg1.eta) < 2.3
+    - abs(leg2.eta) < 2.3
+    - abs(leg3.eta) < 2.5
+    - abs(leg4.eta) < 2.5
+    - (leg1 + leg2).mass < 14
+    - (leg3 + leg4).mass < 20
+  leg1:
+    threshold_cut: offline_pt >= 5
+    obj: L1tkElectron:NoIso:inclusive
+  leg2:
+    threshold_cut: offline_pt >= 5
+    obj: L1tkElectron:NoIso:inclusive
+  leg3:
+    threshold_cut: offline_pt >= 9.0
+    obj: L1tkElectron:NoIso:inclusive
+  leg4:
+    threshold_cut: offline_pt >= 9.0
+    obj: L1tkElectron:NoIso:inclusive
+L1_TkEle_Jet_METSum: # electron counterpart of L1_TkMu_Jet_METSum
+  cross_masks:
+    - abs(leg2.z0-leg1.z0) < 1
+    - abs(leg2.eta) < 1.5
+    - abs(leg3.eta) < 2.5
+  leg1:
+    threshold_cut: null
+    obj: L1PV:default
+  leg2:
+    threshold_cut: offline_pt >= 5
+    obj: L1tkElectron:NoIso:inclusive
+  leg3:
+    threshold_cut: offline_pt >= 148.0
+    obj: L1puppiJetSC4:default
+  leg4:
+    threshold_cut: offline_pt >= 143 # was 120.0 offline
+    obj: L1puppiMET:default
+L1_DoubleTkEle_METSum_HTSum: # electron counterpart of L1_DoubleTkMu_METSum_HTSum
+  cross_masks:
+    - (abs(leg2.z0-leg1.z0) < 1 & (leg3.deltaR(leg2) > 0))
+    - (abs(leg3.z0-leg1.z0) < 1 & (leg3.deltaR(leg2) > 0))
+    - (leg3.deltaR(leg2) > 0)
+  leg1:
+    threshold_cut: null
+    obj: L1PV:default
+  leg2:
+    threshold_cut: offline_pt >= 5
+    obj: L1tkElectron:NoIso:inclusive
+  leg3:
+    threshold_cut: offline_pt >= 5
+    obj: L1tkElectron:NoIso:inclusive
+  leg4:
+    threshold_cut: offline_pt >= 143 # was 120.0 offline
+    obj: L1puppiMET:default
+  leg5:
+    threshold_cut: offline_pt >= 109.0
+    obj: L1puppiJetSC4sums:HT
+L1_DoubleTkEle_Jet: # electron counterpart of L1_DoubleTkMu_Jet
+  cross_masks:
+    - (abs(leg2.z0-leg1.z0) < 1 & (leg3.deltaR(leg2) > 0))
+    - (abs(leg3.z0-leg1.z0) < 1 & (leg3.deltaR(leg2) > 0))
+    - (leg3.deltaR(leg2) < 1.6)
+    - (leg3.deltaR(leg2) > 0)
+    - ((leg4.deltaR(leg2) < 0.8) | (leg4.deltaR(leg3) < 0.8))
+    - abs(leg4.eta) < 2.5
+  leg1:
+    threshold_cut: null
+    obj: L1PV:default
+  leg2:
+    threshold_cut: offline_pt >= 1
+    obj: L1tkElectron:NoIso:inclusive
+  leg3:
+    threshold_cut: offline_pt >= 1
+    obj: L1tkElectron:NoIso:inclusive
+  leg4:
+    threshold_cut: offline_pt >= 138.0
+    obj: L1puppiJetSC4:default
+
 
 # L1_PFIsoTau_PFIsoTau:
 #   cross_masks:
