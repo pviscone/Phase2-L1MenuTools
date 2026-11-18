@@ -24,3 +24,5 @@ dist
 ph2-menu-tools
 prod_ph2-menu-tools
 dev_ph2-menu-tools
+venv
+cache
