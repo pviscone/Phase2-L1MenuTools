@@ -2,9 +2,11 @@ import argparse
 import copy
 import sys
 import os
+import traceback
 import yaml
 
 from menu_tools.rate_table.menu_table import MenuTable
+from menu_tools.rate_table import typst_table
 from menu_tools.utils.versions import (
     add_version_argument,
     get_versions,
@@ -65,6 +67,18 @@ def main():
             "`_truncated` suffix."
         ),
     )
+    parser.add_argument(
+        "--jobs",
+        "-j",
+        type=int,
+        default=int(os.environ.get("MENU_TABLE_JOBS", "1")),
+        help=(
+            "Number of seeds to evaluate in parallel, one forked process per "
+            "seed (the loaded objects are shared copy-on-write). 0 uses all "
+            "cores. Default 1 (serial). Each worker holds its own chunk-sized "
+            "buffers, so keep MENU_TABLE_CHUNK in mind on small machines."
+        ),
+    )
     args = parse_args(parser)
 
     with open(args.config_file, "r") as f:
@@ -80,11 +94,23 @@ def main():
             override_scalings_version=args.scalings,
             override_sample=args.signal,
             truncated=args.truncated,
+            jobs=args.jobs,
         )
         menu_table.make_table()
         menu_table.print_table()
-        menu_table.save_table()
+        csv_path = menu_table.save_table()
         menu_table.dump_masks()
+
+        if not menu_table.config.is_signal:
+            # The Typst menu table rides along with every rate CSV. A failure
+            # here must not lose an expensive rate run, hence the warning.
+            try:
+                typst_table.write_typst_table(
+                    copy.deepcopy(menu_config_dict), menu_table.config, csv_path
+                )
+            except Exception as exc:
+                print(f"WARNING: could not write the Typst menu table: {exc}")
+                traceback.print_exc()
 
     run_per_version(get_versions(parser, args), run)
 

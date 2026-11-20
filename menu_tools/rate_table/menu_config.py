@@ -100,3 +100,11 @@ class MenuConfig:
             return self._config["table_fname"]
         except KeyError:
             return f"{self.version}_rate_table"
+
+    @property
+    def csv_path(self) -> str:
+        """Path of the CSV `MenuTable.save_table` writes for this config."""
+        return os.path.join(
+            self.table_outdir,
+            f"{self.table_fname}_{self.version}{self.scalings_suffix}{self.sample_suffix}.csv",
+        )

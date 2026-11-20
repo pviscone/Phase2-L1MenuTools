@@ -23,6 +23,14 @@ The scalings for the objects in the menu table are applied automatically
 and assume that the have been produced by running `object_performance`, which
 saves them to `outputs/<version>/object_performance/scalings/`.
 
+The seeds are evaluated one after the other by default. `--jobs N` (`-j N`,
+or `MENU_TABLE_JOBS=N`) evaluates N seeds in parallel, one forked process per
+seed; `--jobs 0` uses all cores. The object arrays and ID masks are loaded
+once, in parallel, and shared with the workers copy-on-write, so only the
+per-seed, chunk-sized leg combinations are held per worker: on machines with
+little memory, keep `MENU_TABLE_CHUNK` low or the worker count modest. The
+results are identical to the serial run, in the same order.
+
 ## LaTeX menu tables
 
 `rate_table_tex` turns the CSVs written by `rate_table` into the LaTeX menu
@@ -94,3 +102,37 @@ section at the end, and a warning is printed; seeds in the layout but not in
 the menu are skipped. Cross masks that cannot be translated are reported and
 left as `% NOTE` comments in the `.tex`, so set `requirements` for that seed
 by hand.
+
+## Typst menu tables
+
+Every rate CSV written by `rate_table` also gets two Typst menu tables next to
+it, ready to paste into Typst papers: `<csv stem>.typ` with a column of online
+(hardware) pT thresholds next to the offline ones, and `<csv stem>_no_online.typ`
+without that column. They can be (re)generated on their own with
+`rate_table_typst`, taking the same rate table config and `--version` as
+`rate_table`:
+
+    rate_table_typst configs/V50nano/rate_table/step1p5_cfg.yml --version V50nano
+
+The thresholds and "additional requirements" are derived from the menu
+definition exactly as for `rate_table_tex`, and the section order, the
+object-level requirements (e.g. an ID score cut) and any `thresholds` /
+`requirements` / `extra_requirements` overrides come from the same per-menu
+layout file. The layout strings are passed through to Typst, so keep them to
+plain text and `$...$` math. Seeds not in the layout are appended under their
+own section with a warning.
+
+In `<csv stem>.typ`, the online (hardware) pT threshold of each leg is listed
+next to the offline one: it is the pT whose scaled value equals the offline
+threshold, i.e. the inverse of the online-to-offline scaling (`offline_pt =
+slope * pt + offset`) of the leg object. The barrel scaling is used unless the
+leg names its eta range explicitly (the "Online Threshold(s) (Barrel)"
+convention of the older tables). Legs cutting on the online `pt` instead keep a
+$^{\dagger}$ in the offline column and are their own online threshold. The
+caption quotes the number of seeds in the table; the two total lines are the
+menu rate and the same rate plus 30% for ancillary seeds.
+
+Options: `--layout` and `--csv` pick a layout or CSV by hand, `-o` sets the
+base path of the two `.typ` files; `--scalings` and `--truncated` pick up the
+CSV matching those `rate_table` options. Signal runs (`--signal`) write efficiencies and are not
+turned into a rate table.

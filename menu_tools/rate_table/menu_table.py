@@ -1,5 +1,7 @@
 from functools import reduce
 from itertools import combinations
+from concurrent.futures import ThreadPoolExecutor
+import multiprocessing
 import os
 from typing import Optional, Union
 import re
@@ -46,6 +48,20 @@ def get_eff_err(npass: int, ntot: int, cl: float = 0.68) -> tuple[float, float, 
 
 vector.register_awkward()
 
+# Table the forked workers evaluate seeds on. Set by `_init_seed_worker`; the
+# forked workers share the loaded object arrays copy-on-write.
+_WORKER_TABLE: Optional["MenuTable"] = None
+
+
+def _init_seed_worker(table: "MenuTable") -> None:
+    global _WORKER_TABLE, VERBOSE
+    _WORKER_TABLE = table
+    VERBOSE = 0  # the per-leg prints would interleave across workers
+
+
+def _run_seed_in_worker(seed_name: str) -> tuple[str, np.ndarray]:
+    return seed_name, np.asarray(_WORKER_TABLE.get_trigger_pass_mask(seed_name))
+
 
 class MenuTable:
     """
@@ -63,6 +79,7 @@ class MenuTable:
         override_scalings_version: Optional[str] = None,
         override_sample: Optional[str] = None,
         truncated: bool = False,
+        jobs: int = 1,
     ):
         self.config: MenuConfig = MenuConfig(
             config,
@@ -93,6 +110,7 @@ class MenuTable:
         self.table: Optional[list[dict[str, Union[str, float]]]] = None
         self._trigger_seeds: Optional[dict] = None
         self._seed_masks: dict[str, np.ndarray] = {}
+        self.jobs = jobs
         self._prepare_masks()
 
     @property
@@ -185,9 +203,16 @@ class MenuTable:
 
         # When loading sums (MET, HT, etc.) transfrom the array structure to
         # mimic that of "normal" objects which have lists at the event level
-        # instead of a single number.
+        # instead of a single number. `from_regular(unflatten(x, 1))` is the
+        # vectorised `[[k] for k in x]` (a ~15 s Python loop per sums object):
+        # same `var *` lists of one element, with None kept as [None].
         if isinstance(arr[0], ak.highlevel.Record):
-            arr = ak.zip({field: [[k] for k in arr[field]] for field in arr.fields})
+            arr = ak.zip(
+                {
+                    field: ak.from_regular(ak.unflatten(arr[field], 1))
+                    for field in arr.fields
+                }
+            )
 
         if "eta" in arr.fields:
             arr = ak.with_name(arr, "Momentum4D")
@@ -413,27 +438,35 @@ class MenuTable:
 
         return total_mask
 
+    def _seed_summary(self, mask: np.ndarray) -> str:
+        efficiency = mask.sum() / len(mask)
+        if self.config.is_signal:
+            return f"eff {efficiency * 100:.3g}%"
+        return f"{efficiency * constants.RATE_NORM_FACTOR:.1f} kHz"
+
     def _prepare_masks(self) -> dict[str, np.ndarray]:
-        """Calls `get_trigger_pass_mask` for each object defined in the menu.
-        The function returns the masks for each object.
+        """Calls `get_trigger_pass_mask` for each seed defined in the menu.
+        The function returns the masks for each seed.
 
         Returns:
             seed_masks: array contining masks all trigger seeds
         """
+        seeds = list(self.trigger_seeds)
+        n_workers = self.jobs if self.jobs > 0 else (os.cpu_count() or 1)
+        if n_workers > 1 and len(seeds) > 1:
+            return self._prepare_masks_parallel(seeds, min(n_workers, len(seeds)))
+        return self._prepare_masks_serial(seeds)
+
+    def _prepare_masks_serial(self, seeds: list[str]) -> dict[str, np.ndarray]:
         seed_masks: dict = {}
 
-        pbar = tqdm(self.trigger_seeds)
+        pbar = tqdm(seeds)
         for seed_name in pbar:
             mask = np.asarray(self.get_trigger_pass_mask(seed_name))
             seed_masks[seed_name] = mask
             self._seed_masks = seed_masks
             if len(mask):
-                efficiency = mask.sum() / len(mask)
-                if self.config.is_signal:
-                    summary = f"eff {efficiency * 100:.3g}%"
-                else:
-                    summary = f"{efficiency * constants.RATE_NORM_FACTOR:.1f} kHz"
-                pbar.set_postfix_str(f"{seed_name}: {summary}")
+                pbar.set_postfix_str(f"{seed_name}: {self._seed_summary(mask)}")
             # make_table rebuilds the whole table each call, so this is O(n_seeds^2).
             if VERBOSE >= 2:
                 self.make_table()
@@ -442,6 +475,56 @@ class MenuTable:
         # self.compute_tot_and_pure()
 
         return seed_masks
+
+    def _preload_objects(self, seeds: list[str], n_threads: int) -> None:
+        """Load every object array and ID mask the seeds need.
+
+        The parquet reads and scalings parallelise with threads; done before
+        forking so the workers share the arrays copy-on-write instead of each
+        reading the parquets again.
+        """
+        objs: list[str] = []
+        for seed_name in seeds:
+            for leg in self._filter_seed_legs(seed_name).values():
+                if leg["obj"] not in objs:
+                    objs.append(leg["obj"])
+        with ThreadPoolExecutor(max_workers=max(1, min(n_threads, len(objs)))) as ex:
+            for obj, arr in zip(objs, ex.map(self._load_cached_arrays, objs)):
+                self.arr_cache[obj] = arr
+        for obj in objs:
+            self._get_object_mask(obj, self.arr_cache[obj])
+
+    def _prepare_masks_parallel(
+        self, seeds: list[str], n_workers: int
+    ) -> dict[str, np.ndarray]:
+        """Evaluate the seeds concurrently, one forked process per seed.
+
+        Every object array and ID mask is loaded once here first: the workers
+        are forked afterwards and share them copy-on-write, so only the
+        per-seed (chunked) leg combinations are duplicated per worker.
+        """
+        try:
+            ctx = multiprocessing.get_context("fork")
+        except ValueError:  # no fork outside POSIX
+            print("WARNING: fork is unavailable, evaluating seeds serially")
+            return self._prepare_masks_serial(seeds)
+
+        self._preload_objects(seeds, n_workers)
+
+        print(f"INFO: Evaluating {len(seeds)} seeds with {n_workers} parallel workers")
+        seed_masks: dict = {}
+        pbar = tqdm(total=len(seeds))
+        with ctx.Pool(n_workers, initializer=_init_seed_worker, initargs=(self,)) as pool:
+            for seed_name, mask in pool.imap_unordered(_run_seed_in_worker, seeds):
+                seed_masks[seed_name] = mask
+                pbar.update(1)
+                if len(mask):
+                    pbar.set_postfix_str(f"{seed_name}: {self._seed_summary(mask)}")
+        pbar.close()
+
+        # Keep the menu order the serial loop produces
+        self._seed_masks = {seed_name: seed_masks[seed_name] for seed_name in seeds}
+        return self._seed_masks
 
     def print_table(self) -> None:
         """
@@ -565,19 +648,21 @@ class MenuTable:
         dumped = {k: np.asarray(v).astype(np.int64) for k, v in self._seed_masks.items()}
         ak.to_parquet(ak.zip(dumped), out_path, compression = "LZ4")
 
-    def save_table(self) -> None:
-        """Function that saves to file the table produced by `make_table`."""
+    def save_table(self) -> str:
+        """Function that saves to file the table produced by `make_table`.
+
+        Returns:
+            out_file: path of the CSV written
+        """
         if self.table is None:
             warnings.warn("Table was not computed yet. Run `make_table` first.")
-            return
+            return ""
 
         os.makedirs(self.config.table_outdir, exist_ok=True)
-        out_file = os.path.join(
-            self.config.table_outdir,
-            f"{self.config.table_fname}_{self.config.version}{self.config.scalings_suffix}{self.config.sample_suffix}.csv",
-        )
+        out_file = self.config.csv_path
         columns = list(self.table[0].keys())
         with open(out_file, "w") as f:
             f.write(",".join(columns) + "\n")
             for seed in self.table:
                 f.write(",".join(str(seed[col]) for col in columns) + "\n")
+        return out_file
