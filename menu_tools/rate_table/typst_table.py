@@ -502,6 +502,113 @@ def _requirements_cell(requirements: list[str]) -> str:
 
 
 ###########################################################################
+# Thresholds embedded in the seed names
+###########################################################################
+
+# Numbers in a name that are not thresholds ("DoubleTkMu4er2p0": 4 is the
+# threshold, the 2p0 after "er" is an eta bound; "Mass_Max12": 12 is a mass)
+_NAME_NUMBER_RE = re.compile(r"([A-Za-z]+)(\d+(?:p\d+)?)")
+_NAME_NOT_THRESHOLD = {"max", "min", "mass", "er", "to", "dr", "deta", "mt"}
+# Bare threshold segments, optionally with a quality suffix ("TripleTkMu_4_2p5_0",
+# "TripleTkMu_5SQ_3SQ_0OQ")
+_NAME_BARE_NUMBER_RE = re.compile(r"(\d+(?:p\d+)?)(?:SQ|OQ|DQ)?")
+
+
+def _fmt_name_num(value: float) -> str:
+    """219 -> '219', 2.5 -> '2p5', as thresholds are written in seed names."""
+    return _fmt_num(value).replace(".", "p")
+
+
+def _name_threshold_tokens(name: str) -> list[tuple[int, int, float]]:
+    """(start, end, value) of the numbers of `name` that encode thresholds."""
+    tokens = []
+    offset = 0
+    for segment in name.split("_"):
+        start = offset
+        offset += len(segment) + 1
+        bare = _NAME_BARE_NUMBER_RE.fullmatch(segment)
+        if bare:
+            tokens.append(
+                (start, start + len(bare.group(1)), float(bare.group(1).replace("p", ".")))
+            )
+            continue
+        for match in _NAME_NUMBER_RE.finditer(segment):
+            if match.group(1).lower() in _NAME_NOT_THRESHOLD:
+                continue
+            number = match.group(2)
+            num_start = start + match.start(2)
+            tokens.append((num_start, num_start + len(number), float(number.replace("p", "."))))
+    return tokens
+
+
+def _fix_name_thresholds(name: str, values: list[Optional[float]], seed: str) -> str:
+    """Rewrite the thresholds embedded in `name` when they differ from the
+    thresholds `values` of the menu definition, e.g. `TkMu12_HTSum150` with
+    thresholds 15 and 219 shows as `TkMu15_HTSum219`. Only the Typst table
+    changes; the YAML keeps the historical name.
+
+    The name is left alone when it embeds no thresholds, when they agree, or
+    when they cannot be matched to the legs one to one.
+    """
+    tokens = _name_threshold_tokens(name)
+    if not tokens or any(value is None for value in values):
+        return name
+    if len(tokens) == len(values):
+        expected = values
+    elif len(tokens) == 1 and len(values) > 1 and len(set(values)) == 1:
+        # one number covers legs of equal threshold ("DoubleTkMu4er2p0")
+        expected = values[:1]
+    else:
+        print(
+            f"WARNING: {seed}: {len(tokens)} thresholds in the name for "
+            f"{len(values)} legs, leaving the name unchanged"
+        )
+        return name
+
+    renamed = name
+    for (start, end, found), want in reversed(list(zip(tokens, expected))):
+        if abs(found - want) > 1e-9:
+            renamed = renamed[:start] + _fmt_name_num(want) + renamed[end:]
+    if renamed != name:
+        print(f"INFO: {seed}: name thresholds differ from the menu, shown as `{renamed}`")
+    return renamed
+
+
+###########################################################################
+# Row colors
+###########################################################################
+
+# "blue" or "#123456"; the row fill is the color with a low alpha
+_ROW_FILL_ALPHA = "transparentize(85%)"
+
+
+def _fill_expr(color, seed: str) -> Optional[str]:
+    """Typst fill expression for the `color` field of a seed, or None."""
+    if color is None:
+        return None
+    text = str(color).strip()
+    if re.fullmatch(r"[a-zA-Z]+", text):
+        base = text
+    elif re.fullmatch(r"#[0-9a-fA-F]{6}", text):
+        base = f'rgb("{text}")'
+    else:
+        print(
+            f"WARNING: {seed}: unusable color `{color}`, "
+            "expected a Typst color name (e.g. `blue`) or #rrggbb"
+        )
+        return None
+    return f"{base}.{_ROW_FILL_ALPHA}"
+
+
+def _cell(content: str, fill: Optional[str]) -> str:
+    """Wrap one cell in `table.cell(fill: ...)` when the row is colored."""
+    if not fill:
+        return content
+    body = content[1:-1] if content.startswith("[") and content.endswith("]") else content
+    return f"table.cell(fill: {fill})[{body}]"
+
+
+###########################################################################
 # Rendering
 ###########################################################################
 
@@ -545,12 +652,19 @@ def build_rows(
         thresholds = derived["thresholds"]
         if seed not in rates:
             print(f"WARNING: `{seed}` not found in the CSV")
+        display = seed.removeprefix("L1_")
+        display = _fix_name_thresholds(
+            display,
+            [float(text) if text != "--" else None for text, _, _ in thresholds],
+            seed,
+        )
         return {
-            "seed": seed.removeprefix("L1_"),
+            "seed": display,
             "offline": _thresholds_cell(thresholds),
             "online": _online_cell(thresholds),
             "rate": rates.get(seed),
             "requirements": _requirements_cell(requirements),
+            "fill": _fill_expr(entry.get("color") or menu[seed].get("color"), seed),
         }
 
     for section in layout["sections"]:
@@ -606,13 +720,12 @@ def render_table(
         )
         for row in seeds:
             y += 1
-            cells = f"`{row['seed']}`, {row['offline']}, "
+            cells = [f"`{row['seed']}`", row["offline"]]
             if with_online:
-                cells += f"{row['online']}, "
+                cells.append(row["online"])
+            cells += [f"[{_fmt_rate(row['rate'])}]", row["requirements"]]
             rows.append(
-                "      "
-                + cells
-                + f"[{_fmt_rate(row['rate'])}], {row['requirements']},"
+                "      " + ", ".join(_cell(cell, row["fill"]) for cell in cells) + ","
             )
     if total is not None and not math.isnan(total):
         y += 1

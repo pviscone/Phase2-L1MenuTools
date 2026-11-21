@@ -370,6 +370,7 @@ L1_TkMu12_HTSum150:
     threshold_cut: offline_pt >= 219.0 # was 320 in Run 2 offline
     obj: L1puppiJetSC4sums:HT
 L1_DoubleTkMu_HTSum:
+  color: blue # highlight the row in the typst tables
   cross_masks:
     - (abs(leg2.z0-leg1.z0) < 1 & (leg3.deltaR(leg2) > 0))
     - (abs(leg3.z0-leg1.z0) < 1 & (leg3.deltaR(leg2) > 0))

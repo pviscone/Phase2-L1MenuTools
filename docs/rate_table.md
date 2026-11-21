@@ -122,6 +122,22 @@ layout file. The layout strings are passed through to Typst, so keep them to
 plain text and `$...$` math. Seeds not in the layout are appended under their
 own section with a warning.
 
+Seed names whose numbers encode thresholds are checked against the menu
+definition and corrected in the table only (the YAML keeps the historical
+name): `L1_TkMu12_HTSum150` with thresholds 15 and 219 shows as
+`TkMu15_HTSum219`. Numbers that encode an eta bound, a dR, a mass window, ...
+are left alone, and a name whose thresholds cannot be matched to the legs one
+to one is kept with a warning.
+
+A seed (or its layout entry) can carry a `color` field, e.g. `color: blue` or
+`color: "#3366cc"` in the menu config, and its row is drawn in that color with
+a low alpha:
+
+```yaml
+L1_DoubleTkMu_HTSum:
+  color: blue
+```
+
 In `<csv stem>.typ`, the online (hardware) pT threshold of each leg is listed
 next to the offline one: it is the pT whose scaled value equals the offline
 threshold, i.e. the inverse of the online-to-offline scaling (`offline_pt =
