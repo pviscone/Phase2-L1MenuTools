@@ -1,7 +1,7 @@
 """Write the Typst version of the menu table next to a rate table CSV.
 
 Two tables are written per CSV: `<name>.typ` with the online-thresholds
-column, and `<name>_no_online.typ` without it.
+columns, and `<name>_no_online.typ` without them.
 
 `rate_table` writes them automatically for every rate CSV; they can also be
 (re)generated on their own:
@@ -18,13 +18,12 @@ The content is derived from three inputs:
   any hand-written `thresholds`/`requirements`/`extra_requirements` overrides;
 * the rate CSV written by `rate_table`.
 
-Besides the offline thresholds, a column gives the online (hardware) pT
+Besides the offline thresholds, two columns give the online (hardware) pT
 threshold of each leg, obtained by inverting the online-to-offline scaling
-(``offline_pt = slope * pt + offset``) of the leg object. Scalings are per eta
-region; the barrel parameters are used unless the leg names its eta range
-explicitly (the historical "Online Threshold(s) (Barrel)" convention). Legs
-cutting on the online `pt` directly keep a $dagger$ in the offline column and
-are their own online threshold.
+(``offline_pt = slope * pt + offset``) of the leg object in the barrel and the
+endcap, shown with one decimal. Objects without a regional scaling (the sums)
+fall back to their inclusive one. Legs cutting on the online `pt` directly keep
+a $dagger$ in the offline column and are their own online threshold.
 """
 import argparse
 import math
@@ -156,14 +155,16 @@ def online_threshold(
     obj_key: str,
     value: float,
     version: str,
+    region: str,
     scalings_version: Optional[str] = None,
     decimals: Optional[int] = None,
 ) -> Optional[float]:
     """Online (hardware) pT whose scaled value is `value`, i.e. the inverse of
-    `offline_pt = slope * pt + offset` for the leg object.
+    `offline_pt = slope * pt + offset` for the leg object in `region`
+    ("barrel"/"endcap").
 
-    The scaling of the leg's own eta range is used, else the barrel one
-    ("Online Threshold(s) (Barrel)"), else the inclusive one.
+    The scaling of `region` is used, falling back to the inclusive one for
+    objects without a scaling for `region` (e.g. the sums).
     """
     try:
         # Imported lazily: pulls in awkward, which the tests do not need.
@@ -171,15 +172,31 @@ def online_threshold(
         from menu_tools.utils.scalings import load_scaling_params
 
         obj = Object(obj_key, version)
-        region = obj.eta_range
-        if region == "inclusive":
-            region = "barrel" if "barrel" in obj.eta_ranges else "inclusive"
-        slope, offset = load_scaling_params(obj, region, scalings_version, decimals)
+        # The scaling file is keyed by region: load it for `region` even when
+        # the leg's own key names a different eta range.
+        base = ":".join(obj_key.split(":")[:2])
+        for eta_range in dict.fromkeys([region, "inclusive"]):
+            if eta_range not in obj.eta_ranges:
+                continue
+            slope, offset = load_scaling_params(
+                Object(f"{base}:{eta_range}", version),
+                eta_range,
+                scalings_version,
+                decimals,
+            )
+            break
+        else:
+            raise UserWarning(f"no `{region}` scaling")
     except Exception as exc:  # scaling file missing, object config missing, ...
         warnings.warn(f"No scalings for `{obj_key}` ({exc}), no online threshold")
         return None
     # A threshold below the scaling offset maps to a negative pT, i.e. no cut
     return max(0.0, (value - offset) / slope)
+
+
+def _fmt_online(value: Optional[float]) -> str:
+    """Online threshold with one decimal: 18.53 -> '18.5', missing -> '--'."""
+    return "--" if value is None else f"{value:.1f}"
 
 
 def _object_max_eta(obj_key: str, version: str, objects_cfg: dict) -> Optional[float]:
@@ -342,7 +359,8 @@ def derive_seed(
     cross_masks = seed_def.get("cross_masks") or []
 
     # --- thresholds, in leg order, skipping PV-like legs
-    thresholds: list[tuple[str, bool, str]] = []  # (offline, is_online, online)
+    # (offline, is_online, online barrel, online endcap)
+    thresholds: list[tuple[str, bool, str, str]] = []
     unparsed: list[str] = []
     has_online = False
     for leg_name in physics_legs:
@@ -350,15 +368,24 @@ def derive_seed(
         if parsed is None:
             if legs[leg_name].get("threshold_cut") is not None:
                 unparsed.append(f"{leg_name}: {legs[leg_name]['threshold_cut']}")
-            thresholds.append(("--", False, "--"))
+            thresholds.append(("--", False, "--", "--"))
             continue
         value, is_online = parsed
         has_online |= is_online
-        online = value if is_online else online_threshold(
-            legs[leg_name]["obj"], value, version, scalings_version, decimals
-        )
-        online_text = "--" if online is None else _fmt_num(round(online, 2))
-        thresholds.append((_fmt_num(value), is_online, online_text))
+        if is_online:
+            # the cut is already the online threshold, region-independent
+            text = _fmt_online(value)
+            thresholds.append((_fmt_num(value), True, text, text))
+            continue
+        online = [
+            _fmt_online(
+                online_threshold(
+                    legs[leg_name]["obj"], value, version, region, scalings_version, decimals
+                )
+            )
+            for region in ("barrel", "endcap")
+        ]
+        thresholds.append((_fmt_num(value), False, *online))
 
     # --- requirements from the cross masks
     per_leg_eta: dict[str, float] = {}
@@ -480,19 +507,22 @@ def pu_for_version(version: str, layout: dict) -> int:
     return 200
 
 
-def _thresholds_cell(thresholds: list[tuple[str, bool, str]]) -> str:
+def _thresholds_cell(thresholds: list[tuple[str, bool, str, str]]) -> str:
     """Offline-threshold cell: '[1, 1]' or '[6^dagger, 6^dagger]' in math when
     any threshold is applied online."""
-    if any(is_online for _, is_online, _ in thresholds):
+    if any(is_online for _, is_online, _, _ in thresholds):
         values = ", ".join(
-            text + (DAGGER if is_online else "") for text, is_online, _ in thresholds
+            text + (DAGGER if is_online else "") for text, is_online, _, _ in thresholds
         )
         return f"[${values}$]"
-    return "[" + ", ".join(text for text, _, _ in thresholds) + "]"
+    return "[" + ", ".join(text for text, _, _, _ in thresholds) + "]"
 
 
-def _online_cell(thresholds: list[tuple[str, bool, str]]) -> str:
-    return "[" + ", ".join(online for _, _, online in thresholds) + "]"
+def _online_cells(thresholds: list[tuple[str, bool, str, str]]) -> tuple[str, str]:
+    """Barrel and endcap online-threshold cells, one value per leg."""
+    barrel = ", ".join(text for _, _, text, _ in thresholds)
+    endcap = ", ".join(text for _, _, _, text in thresholds)
+    return f"[{barrel}]", f"[{endcap}]"
 
 
 def _requirements_cell(requirements: list[str]) -> str:
@@ -655,13 +685,15 @@ def build_rows(
         display = seed.removeprefix("L1_")
         display = _fix_name_thresholds(
             display,
-            [float(text) if text != "--" else None for text, _, _ in thresholds],
+            [float(text) if text != "--" else None for text, *_ in thresholds],
             seed,
         )
+        online_barrel, online_endcap = _online_cells(thresholds)
         return {
             "seed": display,
             "offline": _thresholds_cell(thresholds),
-            "online": _online_cell(thresholds),
+            "online_barrel": online_barrel,
+            "online_endcap": online_endcap,
             "rate": rates.get(seed),
             "requirements": _requirements_cell(requirements),
             "fill": _fill_expr(entry.get("color") or menu[seed].get("color"), seed),
@@ -697,10 +729,15 @@ def render_table(
     any_online: bool,
     with_online: bool = True,
 ) -> str:
-    """Render the Typst table. `with_online` adds the online-thresholds column
-    (and mentions it in the caption)."""
-    ncol = 5 if with_online else 4
-    online_header = "[#align(center)[Online thresholds\\ [GeV]]], " if with_online else ""
+    """Render the Typst table. `with_online` adds the online-thresholds columns
+    (and mentions them in the caption)."""
+    ncol = 6 if with_online else 4
+    online_header = (
+        "[#align(center)[Online threshold\\ barrel [GeV]]], "
+        "[#align(center)[Online threshold\\ endcap [GeV]]], "
+        if with_online
+        else ""
+    )
     rows = [
         "      [Seed], "
         "[#align(center)[Offline thresholds\\ [GeV]]], "
@@ -722,7 +759,7 @@ def render_table(
             y += 1
             cells = [f"`{row['seed']}`", row["offline"]]
             if with_online:
-                cells.append(row["online"])
+                cells += [row["online_barrel"], row["online_endcap"]]
             cells += [f"[{_fmt_rate(row['rate'])}]", row["requirements"]]
             rows.append(
                 "      " + ", ".join(_cell(cell, row["fill"]) for cell in cells) + ","
@@ -744,7 +781,11 @@ def render_table(
         )
     last = y
 
-    thresholds_text = "offline and online thresholds" if with_online else "offline thresholds"
+    thresholds_text = (
+        "offline thresholds and the online thresholds of the barrel and endcap scalings"
+        if with_online
+        else "offline thresholds"
+    )
     caption = (
         f"Complete list of the {n_seeds} seeds of the Phase-2 simplified L1 menu, "
         f"with the Run-3 {thresholds_text}, the individual rates at "
@@ -799,7 +840,7 @@ def write_typst_table(
     output: Optional[str] = None,
 ) -> list[str]:
     """Write the Typst menu tables for `csv_path`: with the online-thresholds
-    column (`<base>.typ`) and without it (`<base>_no_online.typ`), where
+    columns (`<base>.typ`) and without them (`<base>_no_online.typ`), where
     `output` or the CSV stem gives `<base>`. Returns the paths written."""
     with open(config.menu_config) as f:
         menu = yaml.safe_load(f)

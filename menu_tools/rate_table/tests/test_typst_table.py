@@ -78,3 +78,19 @@ def test_cell_wrapping():
     assert tt._cell("`TkMu9`", "blue.transparentize(85%)") == (
         "table.cell(fill: blue.transparentize(85%))[`TkMu9`]"
     )
+
+
+def test_online_cells_one_decimal():
+    # (offline, is_online, barrel, endcap)
+    thresholds = [("23", False, "18.5", "16.4"), ("30", False, "24.7", "21.9")]
+    assert tt._online_cells(thresholds) == ("[18.5, 24.7]", "[16.4, 21.9]")
+    # missing scaling and unparsed legs
+    thresholds = [("--", False, "--", "--"), ("12", False, "8.8", "--")]
+    assert tt._online_cells(thresholds) == ("[--, 8.8]", "[--, --]")
+
+
+def test_online_cut_legs_own_threshold():
+    # a leg cutting on the online pT is its own threshold in both columns
+    thresholds = [("5", True, "5.0", "5.0")]
+    assert tt._online_cells(thresholds) == ("[5.0]", "[5.0]")
+    assert tt._thresholds_cell(thresholds) == "[$5^dagger$]"
