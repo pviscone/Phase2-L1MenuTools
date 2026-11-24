@@ -82,7 +82,7 @@ L1_SingleTkEle:
     - (abs(leg1.eta) < 2.5) # NOTE: object itself cut 
   leg1:
     threshold_cut: offline_pt >= 42.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
 L1_SingleTkIsoPhoton:
   cross_masks:
     - (abs(leg1.eta) < 2.5)
@@ -94,7 +94,7 @@ L1_SingleTkEleIso:
     - (abs(leg1.eta) < 2.5)
   leg1:
     threshold_cut: offline_pt >= 35.0
-    obj: L1tkElectron:Iso:inclusive
+    obj: L1GTtkElectron:Iso:inclusive
 L1_DoubleTkEle_er1p2_dR_Max0p6:
   cross_masks:
     - (abs(leg1.eta) < 1.2)
@@ -103,10 +103,10 @@ L1_DoubleTkEle_er1p2_dR_Max0p6:
     - abs(leg2.z0-leg1.z0) < 1
   leg1:
     threshold_cut: offline_pt >= 18.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
   leg2:
     threshold_cut: offline_pt >= 14.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
 L1_DoubleTkEle_er1p5_dEta_Max1p5:
   cross_masks:
     - (abs(leg1.eta) < 1.5)
@@ -115,10 +115,10 @@ L1_DoubleTkEle_er1p5_dEta_Max1p5:
     - abs(leg2.z0-leg1.z0) < 1
   leg1:
     threshold_cut: offline_pt >= 18.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
   leg2:
     threshold_cut: offline_pt >= 18.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
 L1_DoubleTkEle:
   cross_masks:
     - (abs(leg1.eta) < 2.5)
@@ -126,10 +126,10 @@ L1_DoubleTkEle:
     - abs(leg2.z0-leg1.z0) < 1
   leg1:
     threshold_cut: offline_pt >= 30.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
   leg2:
     threshold_cut: offline_pt >= 15.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
 L1_DoubleTkPhoIso: # TODO see what the equivalent for loose iso is
   cross_masks:
     - (abs(leg1.eta) < 1.5)
@@ -247,7 +247,7 @@ L1_TkMu7_TkEle20:
     obj: L1gmtTkMuon:VLoose
   leg2:
     threshold_cut: offline_pt >= 24.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
 L1_TkMu20_TkEle10:
   cross_masks:
     - abs(leg2.z0-leg1.z0) < 1
@@ -257,7 +257,7 @@ L1_TkMu20_TkEle10:
     obj: L1gmtTkMuon:VLoose
   leg2:
     threshold_cut: offline_pt >= 13.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
 # L1_TkMu_TkEleIso: # remove following cristina's suggestion
 #   cross_masks:
 #     - abs(leg2.z0-leg1.z0) < 1
@@ -267,7 +267,7 @@ L1_TkMu20_TkEle10:
 #     obj: L1gmtTkMuon:VLoose
 #   leg2:
 #     threshold_cut: offline_pt >= 24.0
-#     obj: L1tkElectron:Iso:inclusive
+#     obj: L1GTtkElectron:Iso:inclusive
 L1_TkMu_DoubleTkEle:
   cross_masks:
     - abs(leg2.z0-leg1.z0) < 1
@@ -279,10 +279,10 @@ L1_TkMu_DoubleTkEle:
     obj: L1gmtTkMuon:VLoose
   leg2:
     threshold_cut: offline_pt >= 15.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
   leg3:
     threshold_cut: offline_pt >= 15.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
 L1_DoubleTkMu_TkEle:
   cross_masks:
     - abs(leg2.z0-leg1.z0) < 1
@@ -296,7 +296,7 @@ L1_DoubleTkMu_TkEle:
     obj: L1gmtTkMuon:VLoose
   leg3:
     threshold_cut: offline_pt >= 12.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
 L1_DoubleTkMu_DoubleTkEle:
   cross_masks:
     - abs(leg2.z0-leg1.z0) < 1
@@ -316,10 +316,10 @@ L1_DoubleTkMu_DoubleTkEle:
     obj: L1gmtTkMuon:VLoose
   leg3:
     threshold_cut: offline_pt >= 9.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
   leg4:
     threshold_cut: offline_pt >= 9.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
 
 
 # Run 3 Cross Lepton-Hadronic
@@ -449,10 +449,10 @@ L1_DoubleTkEle_HTSum:
     obj: L1PV:default
   leg2:
     threshold_cut: offline_pt >= 11.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
   leg3:
     threshold_cut: offline_pt >= 11.0
-    obj: L1tkElectron:NoIso:inclusive
+    obj: L1GTtkElectron:NoIso:inclusive
   leg4:
     threshold_cut: offline_pt >= 402 #was 390.0
     obj: L1puppiJetSC4sums:HT
@@ -467,7 +467,7 @@ L1_TkEleIso_IsoTau:
     obj: L1PV:default
   leg2:
     threshold_cut: offline_pt >= 26.0
-    obj: L1tkElectron:Iso:inclusive
+    obj: L1GTtkElectron:Iso:inclusive
   leg3:
     threshold_cut: offline_pt >= 56.0
     obj: L1nnPuppiTau:default
@@ -480,7 +480,7 @@ L1_TkEleIso_HTSum:
     obj: L1PV:default
   leg2:
     threshold_cut: offline_pt > 17.0
-    obj: L1tkElectron:Iso:inclusive
+    obj: L1GTtkElectron:Iso:inclusive
   leg3:
     threshold_cut: offline_pt > 280 # was 390.0
     obj: L1puppiJetSC4sums:HT
@@ -543,7 +543,7 @@ L1_DoubleJet_TkEleIso:
     obj: L1puppiJetSC4:default
   leg4:
     threshold_cut: offline_pt >= 24.0
-    obj: L1tkElectron:Iso:inclusive
+    obj: L1GTtkElectron:Iso:inclusive
 L1_DoubleJet_TkMu:
   cross_masks:
     - (leg2 + leg3).mass > 700
@@ -719,12 +719,12 @@ L1_DoubleDispMu:
 #   cross_masks: []
 #   leg1:
 #     threshold_cut: offline_pt >= 36.0
-#     obj: L1tkElectron:NoIso:inclusive
+#     obj: L1GTtkElectron:NoIso:inclusive
 # L1_SingleTkEleIso:
 #   cross_masks: []
 #   leg1:
 #     threshold_cut: offline_pt > 28.0
-#     obj: L1tkElectron:Iso:inclusive
+#     obj: L1GTtkElectron:Iso:inclusive
 # L1_SingleTkMu:
 #   cross_masks: []
 #   leg1:
@@ -735,7 +735,7 @@ L1_DoubleDispMu:
 #     - leg1.deltaR(leg2) > 0.1
 #   leg1:
 #     threshold_cut: offline_pt >= 22.0
-#     obj: L1tkElectron:Iso:inclusive
+#     obj: L1GTtkElectron:Iso:inclusive
 #   leg2:
 #     threshold_cut: offline_pt >= 12.0
 #     obj: L1EG:default:inclusive
@@ -747,7 +747,7 @@ L1_DoubleDispMu:
 #     obj: L1PV:default
 #   leg2:
 #     threshold_cut: offline_pt >= 26.0
-#     obj: L1tkElectron:Iso:inclusive
+#     obj: L1GTtkElectron:Iso:inclusive
 #   leg3:
 #     threshold_cut: offline_pt >= 190.0
 #     obj: L1puppiJetSC4sums:HT
@@ -759,7 +759,7 @@ L1_DoubleDispMu:
 #     obj: L1PV:default
 #   leg2:
 #     threshold_cut: offline_pt >= 22.0
-#     obj: L1tkElectron:Iso:inclusive
+#     obj: L1GTtkElectron:Iso:inclusive
 #   leg3:
 #     threshold_cut: offline_pt >= 45.0
 #     obj: L1nnPuppiTau:default
@@ -774,7 +774,7 @@ L1_DoubleDispMu:
 #     obj: L1PV:default
 #   leg2:
 #     threshold_cut: offline_pt >= 28.0
-#     obj: L1tkElectron:NoIso:inclusive
+#     obj: L1GTtkElectron:NoIso:inclusive
 #   leg3:
 #     threshold_cut: offline_pt >= 40.0
 #     obj: L1puppiJetSC4:default
@@ -783,7 +783,7 @@ L1_DoubleDispMu:
 #     - abs(leg2.z0-leg1.z0) < 1
 #   leg1:
 #     threshold_cut: offline_pt >= 10.0
-#     obj: L1tkElectron:NoIso:inclusive
+#     obj: L1GTtkElectron:NoIso:inclusive
 #   leg2:
 #     threshold_cut: offline_pt >= 20.0
 #     obj: L1gmtTkMuon:VLoose
@@ -796,10 +796,10 @@ L1_DoubleDispMu:
 #     obj: L1gmtTkMuon:VLoose
 #   leg2:
 #     threshold_cut: offline_pt >= 17.0
-#     obj: L1tkElectron:NoIso:inclusive
+#     obj: L1GTtkElectron:NoIso:inclusive
 #   leg3:
 #     threshold_cut: offline_pt >= 17.0
-#     obj: L1tkElectron:NoIso:inclusive
+#     obj: L1GTtkElectron:NoIso:inclusive
 # L1_TkMu_PfHTT:
 #   cross_masks:
 #     - abs(leg2.z0-leg1.z0) < 1
@@ -836,7 +836,7 @@ L1_DoubleDispMu:
 #     obj: L1gmtTkMuon:VLoose
 #   leg2:
 #     threshold_cut: offline_pt >= 23.0
-#     obj: L1tkElectron:NoIso:inclusive
+#     obj: L1GTtkElectron:NoIso:inclusive
 # L1_TkMu_TkEleIso:
 #   cross_masks:
 #     - abs(leg2.z0-leg1.z0) < 1
@@ -845,7 +845,7 @@ L1_DoubleDispMu:
 #     obj: L1gmtTkMuon:VLoose
 #   leg2:
 #     threshold_cut: offline_pt >= 20.0
-#     obj: L1tkElectron:Iso:inclusive
+#     obj: L1GTtkElectron:Iso:inclusive
 # L1_TripleTkMu:
 #   cross_masks:
 #     - abs(leg2.z0-leg1.z0) < 1
@@ -900,10 +900,10 @@ L1_DoubleDispMu:
 #     obj: L1PV:default
 #   leg2:
 #     threshold_cut: offline_pt > 8.0
-#     obj: L1tkElectron:NoIso:inclusive
+#     obj: L1GTtkElectron:NoIso:inclusive
 #   leg3:
 #     threshold_cut: offline_pt > 8.0
-#     obj: L1tkElectron:NoIso:inclusive
+#     obj: L1GTtkElectron:NoIso:inclusive
 #   leg4:
 #     threshold_cut: offline_pt > 390.0
 #     obj: L1puppiJetSC4sums:HT
@@ -941,10 +941,10 @@ L1_DoubleDispMu:
 #     - abs(leg2.z0-leg1.z0) < 1
 #   leg1:
 #     threshold_cut: offline_pt >= 25.0
-#     obj: L1tkElectron:NoIso:inclusive
+#     obj: L1GTtkElectron:NoIso:inclusive
 #   leg2:
 #     threshold_cut: offline_pt >= 12.0
-#     obj: L1tkElectron:NoIso:inclusive
+#     obj: L1GTtkElectron:NoIso:inclusive
 # L1_DoubleTkMu:
 #   cross_masks:
 #     - ((abs(leg1.z0-leg2.z0) < 1) & (leg1.deltaR(leg2) > 0))
@@ -1014,7 +1014,7 @@ L1_DoubleDispMu:
 #     obj: L1gmtTkMuon:VLoose
 #   leg3:
 #     threshold_cut: offline_pt >= 9.0
-#     obj: L1tkElectron:NoIso:inclusive
+#     obj: L1GTtkElectron:NoIso:inclusive
 # L1_PFHTT_QuadJet:
 #   cross_masks:
 #     - abs(leg2.eta) < 2.4

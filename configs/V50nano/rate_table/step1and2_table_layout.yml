@@ -13,7 +13,7 @@ objects:
   # Plateaus (only shown with `plateau` in `columns`) carried over from AR25, to be re-checked
   L1gmtTkMuon: {plateau: '95', max_eta: 2.4}
   L1gmtDispMuon: {plateau: '99', max_eta: 2.4}
-  L1tkElectron: {plateau: '93'}
+  L1GTtkElectron: {plateau: '93'}
   L1tkPhoton: {plateau: '97'}
   L1EG: {plateau: '99'}
   L1caloTau: {plateau: '99'}

@@ -26,20 +26,48 @@ if [[ ! -d cache/$VERSION ]]; then
     echo "No cache/$VERSION, run the caching first"
     return 1 2>/dev/null || exit 1
 fi
+# The plot and table commands are console scripts of the project environment
+# (activate it with `micromamba activate ./venv`, or `source setup.sh` for pyenv/).
+# Fail before submitting anything if they cannot be run, falling back to the
+# known envs: their entry points run with their own venv shebang, so putting the
+# bin dir on PATH is equivalent to activating it.
+MISSING=""
+for CMD in object_performance rate_table rate_plots; do
+    command -v $CMD > /dev/null || MISSING="$MISSING $CMD"
+done
+if [[ -n $MISSING ]]; then
+    ENVBIN=""
+    for DIR in venv/bin pyenv/bin; do
+        if [[ -x $DIR/object_performance && -x $DIR/rate_table && -x $DIR/rate_plots ]]; then
+            ENVBIN=$DIR
+            break
+        fi
+    done
+    if [[ -z $ENVBIN ]]; then
+        echo "Missing:$MISSING - activate the environment first: micromamba activate ./venv (or source setup.sh)"
+        return 1 2>/dev/null || exit 1
+    fi
+    PATH="$PWD/$ENVBIN:$PATH"
+    export PATH
+    echo "Not on PATH, using $PWD/$ENVBIN for:$MISSING"
+fi
+
 echo "Running plots and tables for $VERSION with configs/$CONFIGDIR - Revision = $REVISION"
 
 # Track our own PIDs and check them with `kill -0`. Counting $(jobs -p | wc -l) depends on when
 # bash drops finished jobs from its job table, which differs between bash versions: it can let one
 # job too many through, or keep counting finished jobs forever (a hang with MAX_JOBS=1).
-PIDS=()
+PIDS=()     # every submitted job, in submission order
+NAMES=()    # its log name, parallel to PIDS
+RUNNING=()  # the subset possibly still alive, only used to throttle to MAX_JOBS
 prune_pids() {
     local alive=() p
-    for p in "${PIDS[@]}"; do kill -0 $p 2>/dev/null && alive+=($p); done
-    PIDS=("${alive[@]}")
+    for p in "${RUNNING[@]}"; do kill -0 $p 2>/dev/null && alive+=($p); done
+    RUNNING=("${alive[@]}")
 }
 run_when_ready() {
     prune_pids
-    while [ ${#PIDS[@]} -ge $MAX_JOBS ]; do
+    while [ ${#RUNNING[@]} -ge $MAX_JOBS ]; do
         sleep 3
         prune_pids
     done
@@ -49,6 +77,23 @@ run_when_ready() {
     echo Submitting $logname
     "$@" &> logs/${VERSION}_${REVISION}/${VERSION}_${logname}.log &
     PIDS+=($!)
+    RUNNING+=($!)
+    NAMES+=($logname)
+}
+wait_for_jobs() {
+    # Wait for every submitted job and report those that failed. A finished job
+    # keeps its exit status for `wait <pid>`, so check through the PIDS list: a
+    # plain `wait` first would drop them ("not a child of this shell", 127).
+    local i rc=0
+    RUNNING=()
+    for i in "${!PIDS[@]}"; do
+        if ! wait ${PIDS[$i]}; then
+            echo "FAILED ${NAMES[$i]} (logs/${VERSION}_${REVISION}/${VERSION}_${NAMES[$i]}.log)"
+            rc=1
+        fi
+    done
+    PIDS=() NAMES=()
+    return $rc
 }
 
 mkdir -p logs/${VERSION}_${REVISION}
@@ -122,7 +167,12 @@ if [[ $PERFORMANCE == "true" ]]; then
     # run_when_ready python menu_tools/utils/exportDefs.py -t objects configs/$CONFIGDIR/objects
 
     echo "Waiting for scalings"
-    wait
+    if ! wait_for_jobs; then
+        # Without these jobs the scalings are incomplete, and the menu and rate
+        # steps below would silently consume whatever scalings happen to exist.
+        echo "Object performance jobs failed, not running the menu and rate steps"
+        return 1 2>/dev/null || exit 1
+    fi
     echo "Scalings complete"
 
     source scripts/swapToElectronScalings.sh $VERSION # Explicit scalings swap in case photons finish first
@@ -158,5 +208,8 @@ if [[ $PERFORMANCE == "true" ]]; then
 fi
 
 echo "Plots and tables finished submitting, waiting for them to finish"
-wait  # so runSeveralValidation.sh only counts this version as done once its plots are
+# Wait so runSeveralValidation.sh only counts this version as done once its plots are
+if ! wait_for_jobs; then
+    return 1 2>/dev/null || exit 1
+fi
 echo "Plots and tables finished!"

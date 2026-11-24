@@ -12,7 +12,7 @@ columns: [seed, thresholds, rate, requirements]  # add `plateau` to show object 
 footnotes: []
 objects:
   L1gmtTkMuon: {plateau: '95', max_eta: 2.4}
-  L1tkElectron: {plateau: '93'}
+  L1GTtkElectron: {plateau: '93'}
   L1tkPhoton: {plateau: '97'}
   L1EG: {plateau: '99'}
   L1caloTau: {plateau: '99'}
@@ -66,7 +66,7 @@ sections:
   - name: 'EG seeds (electron, photon)'
     seeds:
       L1_SingleTkEle:
-        # objects: L1tkElectron:NoIso:inclusive
+        # objects: L1GTtkElectron:NoIso:inclusive
         # derived thresholds: 42
         # derived requirements: $|\eta|<2.4$
         label: 'Single TkElectron'
@@ -76,22 +76,22 @@ sections:
         # derived requirements: $|\eta|<2.4$
         label: 'Single TkIsoPhoton'
       L1_SingleTkEleIso:
-        # objects: L1tkElectron:Iso:inclusive
+        # objects: L1GTtkElectron:Iso:inclusive
         # derived thresholds: 35
         # derived requirements: $|\eta|<2.4$
         label: 'Single TkIsoElectron'
       L1_DoubleTkEle_er1p2_dR_Max0p6:
-        # objects: L1tkElectron:NoIso:inclusive, L1tkElectron:NoIso:inclusive
+        # objects: L1GTtkElectron:NoIso:inclusive, L1GTtkElectron:NoIso:inclusive
         # derived thresholds: 18,14
         # derived requirements: $|\eta|<1.2$, ${\Delta}R<0.6$, ${\Delta}z<1$
         label: 'Double TkElectron'
       L1_DoubleTkEle_er1p5_dEta_Max1p5:
-        # objects: L1tkElectron:NoIso:inclusive, L1tkElectron:NoIso:inclusive
+        # objects: L1GTtkElectron:NoIso:inclusive, L1GTtkElectron:NoIso:inclusive
         # derived thresholds: 18,18
         # derived requirements: $|\eta|<1.5$, ${\Delta}\eta<1.5$, ${\Delta}z<1$
         label: 'Double TkElectron'
       L1_DoubleTkEle:
-        # objects: L1tkElectron:NoIso:inclusive, L1tkElectron:NoIso:inclusive
+        # objects: L1GTtkElectron:NoIso:inclusive, L1GTtkElectron:NoIso:inclusive
         # derived thresholds: 30,15
         # derived requirements: $|\eta|<2.4$, ${\Delta}z<1$
         label: 'Double TkElectron'
@@ -164,27 +164,27 @@ sections:
   - name: 'Cross lepton seeds'
     seeds:
       L1_TkMu7_TkEle20:
-        # objects: L1gmtTkMuon:VLoose, L1tkElectron:NoIso:inclusive
+        # objects: L1gmtTkMuon:VLoose, L1GTtkElectron:NoIso:inclusive
         # derived thresholds: 9,24
         # derived requirements: $|\eta|<2.4$, ${\Delta}z<1$
         label: 'TkMuon-TkElectron'
       L1_TkMu20_TkEle10:
-        # objects: L1gmtTkMuon:VLoose, L1tkElectron:NoIso:inclusive
+        # objects: L1gmtTkMuon:VLoose, L1GTtkElectron:NoIso:inclusive
         # derived thresholds: 23,13
         # derived requirements: $|\eta|<2.4$, ${\Delta}z<1$
         label: 'TkMuon-TkElectron'
       L1_TkMu_DoubleTkEle:
-        # objects: L1gmtTkMuon:VLoose, L1tkElectron:NoIso:inclusive, L1tkElectron:NoIso:inclusive
+        # objects: L1gmtTkMuon:VLoose, L1GTtkElectron:NoIso:inclusive, L1GTtkElectron:NoIso:inclusive
         # derived thresholds: 8,15,15
         # derived requirements: $|\eta|<2.4$, ${\Delta}z<1$
         label: 'TkMuon-DoubleTkElectron'
       L1_DoubleTkMu_TkEle:
-        # objects: L1gmtTkMuon:VLoose, L1gmtTkMuon:VLoose, L1tkElectron:NoIso:inclusive
+        # objects: L1gmtTkMuon:VLoose, L1gmtTkMuon:VLoose, L1GTtkElectron:NoIso:inclusive
         # derived thresholds: 7,7,12
         # derived requirements: $|\eta|<2.4$, ${\Delta}z<1$
         label: 'DoubleTkMuon-TkElectron'
       L1_DoubleTkMu_DoubleTkEle:
-        # objects: L1gmtTkMuon:VLoose, L1gmtTkMuon:VLoose, L1tkElectron:NoIso:inclusive, L1tkElectron:NoIso:inclusive
+        # objects: L1gmtTkMuon:VLoose, L1gmtTkMuon:VLoose, L1GTtkElectron:NoIso:inclusive, L1GTtkElectron:NoIso:inclusive
         # derived thresholds: 5,5,9,9
         # derived requirements: $|\eta|<2.3$, $|\eta|<2.4$, ${\Delta}z<1$, $m_{\mu \mu}<14$, $m_{e e}<20$
         label: 'DoubleTkMuon-DoubleTkElectron'
@@ -226,17 +226,17 @@ sections:
         # derived requirements: $|\eta|<2.4$, $|\eta|<2.5$, ${\Delta}z<1$, ${\Delta}R<1.6$, ${\Delta}R_{j \mu}<0.8$
         label: 'DoubleTkMuon-PuppiJet'
       L1_DoubleTkEle_HTSum:
-        # objects: L1tkElectron:NoIso:inclusive, L1tkElectron:NoIso:inclusive, L1puppiJetSC4sums:HT
+        # objects: L1GTtkElectron:NoIso:inclusive, L1GTtkElectron:NoIso:inclusive, L1puppiJetSC4sums:HT
         # derived thresholds: 11,11,402
         # derived requirements: $|\eta|<2.4$, ${\Delta}z<1$
         label: 'DoubleTkElectron-Puppi\HT'
       L1_TkEleIso_IsoTau:
-        # objects: L1tkElectron:Iso:inclusive, L1nnPuppiTau:default
+        # objects: L1GTtkElectron:Iso:inclusive, L1nnPuppiTau:default
         # derived thresholds: 26,56
         # derived requirements: $|\eta|<2.1$, ${\Delta}z<1$, ${\Delta}R_{\tau e}>0.3$, NN score $>0.22$
         label: 'TkIsoElectron-PuppiTau'
       L1_TkEleIso_HTSum:
-        # objects: L1tkElectron:Iso:inclusive, L1puppiJetSC4sums:HT
+        # objects: L1GTtkElectron:Iso:inclusive, L1puppiJetSC4sums:HT
         # derived thresholds: 17,280
         # derived requirements: $|\eta|<2.4$, ${\Delta}z<1$
         label: 'TkIsoElectron-Puppi\HT'
@@ -260,7 +260,7 @@ sections:
         # derived requirements: $|\eta|<2.1$, $m_{j j}>600$, ${\Delta}R_{\tau j}>0.5$, NN score $>0.22$
         label: 'DoublePuppiJet-PuppiTau'
       L1_DoubleJet_TkEleIso:
-        # objects: L1puppiJetSC4:default, L1puppiJetSC4:default, L1tkElectron:Iso:inclusive
+        # objects: L1puppiJetSC4:default, L1puppiJetSC4:default, L1GTtkElectron:Iso:inclusive
         # derived thresholds: 93,93,24
         # derived requirements: $|\eta|<2.1$, $m_{j j}>550$, ${\Delta}z<1$
         label: 'DoublePuppiJet-TkIsoElectron'
@@ -342,7 +342,7 @@ sections:
         # derived requirements: $|\eta|<2.1$, $|\eta|<2.4$, ${\Delta}z<1$, NN score $>0.22$
         label: 'TkMuon-PuppiTau (ext.)'
       L1_TkEleIso_IsoTau_Ext:
-        # objects: L1tkElectron:Iso:inclusive, L1nnPuppiTau:extended
+        # objects: L1GTtkElectron:Iso:inclusive, L1nnPuppiTau:extended
         # derived thresholds: 26,56
         # derived requirements: $|\eta|<2.1$, $|\eta|<2.4$, ${\Delta}z<1$, ${\Delta}R_{\tau e}>0.3$, NN score $>0.22$
         label: 'TkIsoElectron-PuppiTau (ext.)'

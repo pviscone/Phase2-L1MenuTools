@@ -1,4 +1,4 @@
-L1tkElectron:
+L1GTtkElectron:
   match_dR: 0.15
   eta_ranges:
     inclusive: [0, 7]
@@ -11,9 +11,9 @@ L1tkElectron:
         inclusive:
           - "abs({eta}) < 2.4"
         endcap:
-          - "{eleId} == 1"
+          - "({hwQual}>>1)&1 == 1" # eleId = hwQual bit 1, the GT ntuple has no eleId branch
         barrel:
-          - "{eleId} == 1"
+          - "({hwQual}>>1)&1 == 1"
     NoIsoForIso:
       # This id is exclusively used for the
       # isoloation wp derivation
@@ -28,10 +28,10 @@ L1tkElectron:
           - "abs({eta}) < 2.4"
         barrel:
           - "abs({relIso}) < 0.13"
-          - "{eleId} == 1"
+          - "({hwQual}>>1)&1 == 1"
         endcap:
           - "abs({relIso}) < 0.28"
-          - "{eleId} == 1"
+          - "({hwQual}>>1)&1 == 1"
 
 L1EG:
   match_dR: 0.2
