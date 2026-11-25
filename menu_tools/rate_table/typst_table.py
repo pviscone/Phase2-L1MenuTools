@@ -68,9 +68,6 @@ DEFAULT_OBJECTS: dict[str, dict] = {
     "L1nnPuppiTau": {"requirement": "NN score $> 0.22$"},
 }
 
-# Ancillary seeds not in the simplified menu, added to the second total line
-ANCILLARY_MARGIN = 0.3
-
 TABLE_LABEL = "tab:l1_menu"
 
 # LaTeX macros of the layout strings that need a Typst rendering
@@ -542,6 +539,13 @@ _NAME_NOT_THRESHOLD = {"max", "min", "mass", "er", "to", "dr", "deta", "mt"}
 # Bare threshold segments, optionally with a quality suffix ("TripleTkMu_4_2p5_0",
 # "TripleTkMu_5SQ_3SQ_0OQ")
 _NAME_BARE_NUMBER_RE = re.compile(r"(\d+(?:p\d+)?)(?:SQ|OQ|DQ)?")
+# Name segments that name no leg: quality flags, eta/mass windows and region
+# suffixes ("OS", "er1p5", "Min250", "Barrel", "BMTF", ...)
+_NAME_SUFFIX_WORDS = _NAME_NOT_THRESHOLD | {
+    "os", "sq", "dq", "oq", "barrel", "overlap", "bmtf", "emtf", "omtf", "hgcal", "hf",
+}
+# Legs named by one name segment
+_NAME_MULTIPLICITY = {"single": 1, "double": 2, "triple": 3, "quad": 4}
 
 
 def _fmt_name_num(value: float) -> str:
@@ -577,12 +581,15 @@ def _fix_name_thresholds(name: str, values: list[Optional[float]], seed: str) ->
     thresholds 15 and 219 shows as `TkMu15_HTSum219`. Only the Typst table
     changes; the YAML keeps the historical name.
 
-    The name is left alone when it embeds no thresholds, when they agree, or
-    when they cannot be matched to the legs one to one.
+    A name embedding no thresholds gets them written in by
+    `_add_name_thresholds`. The name is left alone when a threshold is unknown,
+    or when the thresholds cannot be matched to the legs one to one.
     """
     tokens = _name_threshold_tokens(name)
-    if not tokens or any(value is None for value in values):
+    if any(value is None for value in values):
         return name
+    if not tokens:
+        return _add_name_thresholds(name, values, seed)
     if len(tokens) == len(values):
         expected = values
     elif len(tokens) == 1 and len(values) > 1 and len(set(values)) == 1:
@@ -602,6 +609,50 @@ def _fix_name_thresholds(name: str, values: list[Optional[float]], seed: str) ->
     if renamed != name:
         print(f"INFO: {seed}: name thresholds differ from the menu, shown as `{renamed}`")
     return renamed
+
+
+def _add_name_thresholds(name: str, values: list[Optional[float]], seed: str) -> str:
+    """Write the thresholds `values` into `name`, which embeds none: each leg
+    group gets its values appended to its object segment, in the style of the
+    seeds that do carry thresholds (`TkMu6_HTSum240`), one number for legs of
+    equal threshold (`DoubleTkMu4er2p0`). `DoubleTkMu_HTSum` with 5, 5 and 305
+    shows as `DoubleTkMu5_HTSum305`, `DoubleIsoTau_Jet` with 58, 56 and 103 as
+    `DoubleIsoTau58_56_Jet103`.
+
+    The name is left alone when the legs cannot be matched to the object
+    segments one to one.
+    """
+    segments = name.split("_")
+    groups: list[tuple[int, int]] = []  # (segment index, leg count)
+    for index, segment in enumerate(segments):
+        word = re.match(r"[A-Za-z]+", segment)
+        if word is None or word.group(0).lower() in _NAME_SUFFIX_WORDS:
+            continue
+        if not segment.isalpha():
+            print(
+                f"WARNING: {seed}: cannot place the thresholds in `{name}`, "
+                "leaving the name unchanged"
+            )
+            return name
+        prefix = re.match(r"(?i)(single|double|triple|quad)", segment)
+        count = _NAME_MULTIPLICITY[prefix.group(1).lower()] if prefix else 1
+        groups.append((index, count))
+    if sum(count for _, count in groups) != len(values):
+        print(
+            f"WARNING: {seed}: {len(values)} thresholds cannot be matched to the "
+            f"object parts of `{name}`, leaving the name unchanged"
+        )
+        return name
+
+    renamed = list(segments)
+    at = 0
+    for index, count in groups:
+        numbers = [_fmt_name_num(value) for value in values[at : at + count]]
+        at += count
+        renamed[index] += numbers[0] if len(set(numbers)) == 1 else "_".join(numbers)
+    out = "_".join(renamed)
+    print(f"INFO: {seed}: no thresholds in the name, shown as `{out}`")
+    return out
 
 
 ###########################################################################
@@ -730,20 +781,23 @@ def render_table(
     with_online: bool = True,
 ) -> str:
     """Render the Typst table. `with_online` adds the online-thresholds columns
-    (and mentions them in the caption)."""
+    (and mentions them in the caption). The header row repeats on every page,
+    and the footnote under the table defines the barrel / endcap regions."""
     ncol = 6 if with_online else 4
     online_header = (
-        "[#align(center)[Online threshold\\ barrel [GeV]]], "
-        "[#align(center)[Online threshold\\ endcap [GeV]]], "
+        "[#align(center)[Online\\ thresholds\\ barrel [GeV]]], "
+        "[#align(center)[Online\\ thresholds\\ endcap [GeV]]], "
         if with_online
         else ""
     )
     rows = [
-        "      [Seed], "
-        "[#align(center)[Offline thresholds\\ [GeV]]], "
+        "      table.header(",
+        "        [Seed], "
+        "[#align(center)[Offline\\ thresholds\\ [GeV]]], "
         + online_header
         + f"[#align(center)[Rate at PU {pu}\\ [kHz]]], "
-        "[#align(center)[Additional\\ requirements]],"
+        "[#align(center)[Additional\\ requirements]],",
+        "      ),",
     ]
     heavy: list[int] = []  # rows with a 1pt top stroke: section banners, totals
     y = 0  # the header row is y == 0
@@ -772,13 +826,6 @@ def render_table(
             "[*Total L1 menu rate*], "
             f"[{_fmt_khz(total)}],"
         )
-        y += 1
-        margin = int(100 * ANCILLARY_MARGIN)
-        rows.append(
-            f"      table.cell(colspan: {ncol - 1}, align: right)"
-            f"[*Total L1 menu rate + {margin}% ancillary seeds*], "
-            f"[{_fmt_khz(total * (1 + ANCILLARY_MARGIN))}]"
-        )
     last = y
 
     thresholds_text = (
@@ -797,11 +844,24 @@ def render_table(
             "offline-to-online scaling."
         )
 
+    notes = []
+    if with_online:
+        notes.append(f"Online thresholds for $⟨italic(\"PU\")⟩ = {pu}$. Regions:")
+        notes += [
+            "Muons: Barrel $|eta| < 0.83$, Overlap 0.83--1.24, Endcap $|eta| >= 1.24$",
+            "EGamma: Barrel $|eta| < 1.479$, Endcap $|eta| >= 1.479$",
+            "Tau/Jet: Barrel $|eta| < 1.5$, Endcap 1.5--2.4, HGC 2.4--3 "
+            "(taus: one endcap scaling for 1.5--3), HF $|eta| >= 3$",
+        ]
+
     out = [
         "#align(center)[",
-        "  #set text(size: 10.34pt)",
+        "  #set text(size: 8pt)",
+        "  #show figure: set block(breakable: true)",
+        "  #show figure.caption: it => align(left, it)",
         "  #figure(",
-        "    table(",
+        "    [",
+        "    #table(",
         f"      columns: ({', '.join(['auto'] * ncol)}),",
         "      stroke: (x, y) => (",
         "        left: if x > 0 { 1pt } else { 0pt },",
@@ -812,14 +872,22 @@ def render_table(
         "        } else {",
         "          0.4pt",
         "        },",
-        f"        bottom: if y == {last} {{ 1pt }} else {{ 0pt }},",
+        f"        bottom: if y == 0 or y == {last} {{ 1pt }} else {{ 0pt }},",
         "      ),",
         "      inset: 4pt,",
         "      align: left + horizon,",
     ]
     out += rows
+    out += ["    )"]
+    if notes:
+        out.append("    #align(left)[")
+        for i, note in enumerate(notes):
+            indent = "" if i == 0 else "#h(1.5em)"
+            out.append(f"      {indent}{note}" + ("\\" if i < len(notes) - 1 else ""))
+        out.append("    ]")
     out += [
-        "    ),",
+        "    ],",
+        "    kind: table,",
         f"    caption: [{caption}],",
         f"  ) <{TABLE_LABEL}>",
         "]",

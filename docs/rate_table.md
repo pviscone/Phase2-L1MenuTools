@@ -127,7 +127,9 @@ definition and corrected in the table only (the YAML keeps the historical
 name): `L1_TkMu12_HTSum150` with thresholds 15 and 219 shows as
 `TkMu15_HTSum219`. Numbers that encode an eta bound, a dR, a mass window, ...
 are left alone, and a name whose thresholds cannot be matched to the legs one
-to one is kept with a warning.
+to one is kept with a warning. Names that encode no thresholds get them written
+in: `DoubleTkMu_HTSum` with 5, 5 and 305 shows as `DoubleTkMu5_HTSum305`, one
+number covering legs of equal threshold.
 
 A seed (or its layout entry) can carry a `color` field, e.g. `color: blue` or
 `color: "#3366cc"` in the menu config, and its row is drawn in that color with
@@ -145,8 +147,10 @@ slope * pt + offset`) of the leg object. The barrel scaling is used unless the
 leg names its eta range explicitly (the "Online Threshold(s) (Barrel)"
 convention of the older tables). Legs cutting on the online `pt` instead keep a
 $^{\dagger}$ in the offline column and are their own online threshold. The
-caption quotes the number of seeds in the table; the two total lines are the
-menu rate and the same rate plus 30% for ancillary seeds.
+caption quotes the number of seeds in the table, the total line is the menu
+rate, and the header row repeats on every page. A footnote under the table
+gives the pileup of the online thresholds and defines the barrel / endcap
+regions of each object.
 
 Options: `--layout` and `--csv` pick a layout or CSV by hand, `-o` sets the
 base path of the two `.typ` files; `--scalings` and `--truncated` pick up the

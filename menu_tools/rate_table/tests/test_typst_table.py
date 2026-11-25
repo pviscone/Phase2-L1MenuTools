@@ -47,12 +47,32 @@ def test_fix_name_thresholds_renames():
 def test_fix_name_thresholds_keeps_names():
     # agrees with the menu definition
     assert tt._fix_name_thresholds("TkMu15_HTSum219", [15, 219], "x") == "TkMu15_HTSum219"
-    # no thresholds in the name
-    assert tt._fix_name_thresholds("DoubleTkMu_HTSum", [5, 5, 305], "x") == "DoubleTkMu_HTSum"
     # one number for legs of differing thresholds: cannot be matched, keep
     assert tt._fix_name_thresholds("DoubleTkMu4er2p0_SQ", [6, 7], "x") == "DoubleTkMu4er2p0_SQ"
     # name numbers that cannot be matched to the legs one to one, keep
     assert tt._fix_name_thresholds("TkMu7_TkEle20", [9, 24, 5], "x") == "TkMu7_TkEle20"
+    # an unknown threshold keeps the name untouched
+    assert tt._fix_name_thresholds("DoubleTkMu_HTSum", [5, None, 305], "x") == "DoubleTkMu_HTSum"
+    # legs that cannot be matched to the object parts, keep
+    assert tt._fix_name_thresholds("DoubleTkMu_HTSum", [5, 305], "x") == "DoubleTkMu_HTSum"
+
+
+def test_fix_name_thresholds_adds_missing():
+    # thresholds attached to their object segment, like `TkMu6_HTSum240`
+    assert tt._fix_name_thresholds("DoubleTkMu_HTSum", [5, 5, 305], "x") == "DoubleTkMu5_HTSum305"
+    assert tt._fix_name_thresholds("HTSum", [378], "x") == "HTSum378"
+    # one number for legs of equal threshold, like `DoubleTkMu4er2p0`
+    assert tt._fix_name_thresholds("TripleTkMu", [5, 5, 5], "x") == "TripleTkMu5"
+    # legs of differing thresholds keep one number each
+    assert tt._fix_name_thresholds("DoubleIsoTau_Jet", [58, 56, 103], "x") == "DoubleIsoTau58_56_Jet103"
+    # suffix segments name no leg
+    assert tt._fix_name_thresholds("SingleTkMu_Barrel", [13], "x") == "SingleTkMu13_Barrel"
+    assert (
+        tt._fix_name_thresholds("DoubleJet_Mass_Min1000", [145, 70], "x")
+        == "DoubleJet145_70_Mass_Min1000"
+    )
+    # thresholds keep their "p" form
+    assert tt._fix_name_thresholds("DoubleTkMu", [2.5, 2.5], "x") == "DoubleTkMu2p5"
 
 
 def test_fix_name_thresholds_compressed_legs():
