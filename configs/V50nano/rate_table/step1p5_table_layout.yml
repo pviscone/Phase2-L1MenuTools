@@ -81,13 +81,13 @@ sections:
         label: 'Double PuppiJet'
       L1_DoubleJet_Mass_Min250_dEta_Max1p5:
         label: 'Double PuppiJet'
-      L1_HTSum:
+      L1_HT:
         label: 'Puppi\HT'
         # AR25 quoted the HT jet definition ('jets: $|\eta|<2.4$, $\pt>30$');
         # add it back as `requirements` once confirmed for the SC4 sums.
-  - name: '\ETmiss seeds'
+  - name: 'Missing energy seeds'
     seeds:
-      L1_METSum:
+      L1_MET:
         label: 'Puppi\ETmiss'
   - name: 'Cross-lepton seeds'
     seeds:
@@ -103,23 +103,23 @@ sections:
         label: 'DoubleTkMuon-DoubleTkElectron'
   - name: 'Cross hadronic-lepton seeds'
     seeds:
-      L1_TkMu6_HTSum240:
+      L1_TkMu6_HT240:
         label: 'TkMuon-Puppi\HT'
-      L1_TkMu12_HTSum150:
+      L1_TkMu12_HT150:
         label: 'TkMuon-Puppi\HT'
-      L1_DoubleTkMu_HTSum:
+      L1_DoubleTkMu_HT:
         label: 'DoubleTkMuon-Puppi\HT'
       L1_DoubleTkMu_Jet:
         label: 'DoubleTkMuon-PuppiJet'
-      L1_TkMu_Jet_METSum:
+      L1_TkMu_Jet_MET:
         label: 'TkMuon-PuppiJet-Puppi\ETmiss'
-      L1_DoubleTkMu_METSum_HTSum:
+      L1_DoubleTkMu_MET_HT:
         label: 'DoubleTkMuon-Puppi\ETmiss-Puppi\HT'
       L1_TkMu_IsoTau:
         label: 'TkMuon-PuppiTau'
-      L1_DoubleTkEle_HTSum:
+      L1_DoubleTkEle_HT:
         label: 'DoubleTkElectron-Puppi\HT'
-      L1_TkEleIso_HTSum:
+      L1_TkEleIso_HT:
         label: 'TkIsoElectron-Puppi\HT'
       L1_TkEleIso_IsoTau:
         label: 'TkIsoElectron-PuppiTau'
@@ -137,7 +137,7 @@ sections:
         label: 'DoublePuppiJet-TkIsoElectron'
       L1_DoubleJet_TkMu:
         label: 'DoublePuppiJet-TkMuon'
-      L1_DoubleJet_METSum:
+      L1_DoubleJet_MET:
         label: 'DoublePuppiJet-Puppi\ETmiss'
   - name: 'Displaced muon seeds'
     seeds:

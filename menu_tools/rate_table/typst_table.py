@@ -868,7 +868,7 @@ def render_table(
         "        top: if y == 0 {",
         "          0pt",
         f"        }} else if y in ({', '.join(str(i) for i in heavy)}) {{",
-        "          1pt",
+        "          1.3pt",
         "        } else {",
         "          0.4pt",
         "        },",
